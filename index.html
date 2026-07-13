@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Catatan Uang</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF9F5;
+    --paper-alt:#F0EEE6;
+    --paper-raise:#FFFFFF;
+    --ink:#24231F;
+    --ink-soft:#75736A;
+    --line:#D9D6C9;
+    --income:#1B7A4D;
+    --income-soft:#E4F3EA;
+    --expense:#C4432B;
+    --expense-soft:#FBE8E2;
+    --accent:#B8860B;
+    --accent-soft:#FBF1D2;
+    --shadow: 0 1px 2px rgba(36,35,31,0.06), 0 6px 16px rgba(36,35,31,0.06);
+    --radius: 14px;
+  }
+  [data-theme="dark"]{
+    --paper:#16171B;
+    --paper-alt:#1E2024;
+    --paper-raise:#212327;
+    --ink:#ECEAE2;
+    --ink-soft:#9B998F;
+    --line:#34363B;
+    --income:#3FCE84;
+    --income-soft:rgba(63,206,132,0.14);
+    --expense:#FF7A5C;
+    --expense-soft:rgba(255,122,92,0.14);
+    --accent:#E8B93D;
+    --accent-soft:rgba(232,185,61,0.14);
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    transition:background .25s ease,color .25s ease;
+  }
+  #app{
+    width:100%;
+    max-width:460px;
+    min-height:100vh;
+    background:var(--paper);
+    position:relative;
+    padding-bottom:96px;
+  }
+  .display{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  /* header */
+  header{
+    padding:22px 20px 14px;
+    position:sticky; top:0; z-index:20;
+    background:var(--paper);
+    border-bottom:1px solid var(--line);
+  }
+  .header-row{display:flex; align-items:center; justify-content:space-between;}
+  .brand{display:flex; align-items:center; gap:8px;}
+  .brand .mark{
+    width:28px;height:28px;border-radius:8px;
+    background:var(--ink); color:var(--paper);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:14px;
+  }
+  .brand h1{font-size:17px; margin:0; font-weight:600; letter-spacing:-0.01em;}
+  #themeToggle{
+    width:38px;height:38px;border-radius:50%;
+    border:1px solid var(--line); background:var(--paper-alt);
+    color:var(--ink); font-size:16px; cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .total-block{margin-top:16px;}
+  .total-label{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); font-weight:600;}
+  .total-amount{font-size:32px; font-weight:700; margin-top:2px; letter-spacing:-0.02em;}
+  .month-stats{display:flex; gap:14px; margin-top:10px;}
+  .stat-pill{
+    display:flex; align-items:center; gap:6px;
+    font-size:12.5px; color:var(--ink-soft);
+  }
+  .stat-dot{width:7px;height:7px;border-radius:50%;}
+
+  /* wallets */
+  .section{padding:16px 20px 4px;}
+  .section-title{
+    font-size:11px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--ink-soft); font-weight:600; margin-bottom:10px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .wallet-scroll{
+    display:flex; gap:10px; overflow-x:auto; padding-bottom:6px;
+    scrollbar-width:none;
+  }
+  .wallet-scroll::-webkit-scrollbar{display:none;}
+  .wallet-card{
+    flex:0 0 auto; min-width:140px;
+    background:var(--paper-raise); border:1px solid var(--line);
+    border-radius:var(--radius); padding:12px 14px;
+    cursor:pointer; transition:border-color .15s ease, transform .1s ease;
+  }
+  .wallet-card:active{transform:scale(0.98);}
+  .wallet-card.active{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent);}
+  .wallet-card .w-icon{font-size:18px;}
+  .wallet-card .w-name{font-size:12.5px; color:var(--ink-soft); margin-top:6px;}
+  .wallet-card .w-bal{font-size:14px; font-weight:600; margin-top:2px;}
+  .wallet-add{
+    flex:0 0 auto; min-width:70px;
+    display:flex; align-items:center; justify-content:center;
+    border:1px dashed var(--line); border-radius:var(--radius);
+    color:var(--ink-soft); cursor:pointer; font-size:20px;
+    background:transparent;
+  }
+
+  /* filter tabs */
+  .filter-row{display:flex; gap:8px; padding:14px 20px 6px;}
+  .filter-chip{
+    padding:6px 14px; border-radius:999px; font-size:12.5px; font-weight:500;
+    border:1px solid var(--line); background:var(--paper-alt); color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .filter-chip.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+
+  /* receipt list */
+  .receipt-wrap{margin:14px 20px 0;}
+  .receipt{
+    background:var(--paper-raise); border:1px solid var(--line);
+    border-radius:var(--radius); overflow:hidden;
+  }
+  .receipt-tear{
+    height:10px;
+    background:
+      linear-gradient(-45deg, var(--paper) 6px, transparent 0),
+      linear-gradient(45deg, var(--paper) 6px, transparent 0);
+    background-size:12px 12px;
+    background-position:left top;
+    background-repeat:repeat-x;
+  }
+  .day-group{padding:14px 16px 4px;}
+  .day-label{
+    font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--ink-soft); font-weight:600; margin-bottom:8px;
+  }
+  .tx-row{
+    display:flex; align-items:center; gap:10px;
+    padding:9px 0; border-bottom:1px dotted var(--line);
+    cursor:pointer;
+  }
+  .day-group .tx-row:last-child{border-bottom:none;}
+  .tx-icon{
+    width:32px;height:32px;border-radius:9px; flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center; font-size:15px;
+    background:var(--paper-alt);
+  }
+  .tx-mid{flex:1; min-width:0;}
+  .tx-cat{font-size:13.5px; font-weight:500;}
+  .tx-note{font-size:11.5px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .tx-right{text-align:right; flex:0 0 auto;}
+  .tx-amount{font-size:13.5px; font-weight:600;}
+  .tx-amount.income{color:var(--income);}
+  .tx-amount.expense{color:var(--expense);}
+  .tx-wallet{font-size:10.5px; color:var(--ink-soft); margin-top:2px;}
+  .tx-reminder-badge{font-size:10px; color:var(--accent); margin-top:2px;}
+
+  .empty-state{
+    padding:40px 20px; text-align:center; color:var(--ink-soft); font-size:13px;
+  }
+  .empty-state .big{font-size:30px; margin-bottom:8px;}
+
+  /* reminder banner */
+  .reminder-banner{
+    margin:14px 20px 0; background:var(--accent-soft); border:1px solid var(--accent);
+    border-radius:var(--radius); padding:12px 14px; font-size:12.5px;
+  }
+  .reminder-banner .rb-title{font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:6px;}
+  .reminder-item{display:flex; justify-content:space-between; padding:3px 0; color:var(--ink);}
+
+  /* FAB */
+  .fab{
+    position:fixed; bottom:26px; left:50%;
+    transform:translateX(calc(-50% + 165px));
+    width:56px;height:56px;border-radius:50%;
+    background:var(--ink); color:var(--paper);
+    border:none; font-size:26px; cursor:pointer;
+    box-shadow:var(--shadow); z-index:30;
+    display:flex;align-items:center;justify-content:center;
+  }
+  @media (max-width:460px){
+    .fab{ left:auto; right:20px; transform:none; }
+  }
+
+  /* sheet / modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(20,19,16,0.45);
+    z-index:40; display:none; justify-content:center;
+  }
+  .overlay.show{display:flex;}
+  .sheet{
+    align-self:flex-end; width:100%; max-width:460px;
+    background:var(--paper); border-radius:20px 20px 0 0;
+    max-height:88vh; overflow-y:auto;
+    animation:slideUp .2s ease;
+    padding:18px 20px 28px;
+  }
+  @keyframes slideUp{from{transform:translateY(24px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+  .sheet-handle{width:36px;height:4px;background:var(--line);border-radius:99px;margin:0 auto 14px;}
+  .sheet-title{font-size:16px; font-weight:600; margin-bottom:16px; font-family:'Space Grotesk',sans-serif;}
+  .type-toggle{display:flex; background:var(--paper-alt); border-radius:12px; padding:4px; margin-bottom:16px;}
+  .type-toggle button{
+    flex:1; border:none; background:transparent; padding:9px 0; border-radius:9px;
+    font-size:13px; font-weight:600; color:var(--ink-soft); cursor:pointer;
+  }
+  .type-toggle button.active.income-active{background:var(--income-soft); color:var(--income);}
+  .type-toggle button.active.expense-active{background:var(--expense-soft); color:var(--expense);}
+
+  .amount-input-wrap{margin-bottom:16px;}
+  .amount-input-wrap label{font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.06em; font-weight:600;}
+  .amount-input{
+    width:100%; border:none; border-bottom:2px solid var(--line);
+    background:transparent; font-family:'IBM Plex Mono',monospace;
+    font-size:28px; font-weight:600; padding:8px 0; color:var(--ink); outline:none;
+  }
+  .amount-input:focus{border-color:var(--accent);}
+
+  .field{margin-bottom:16px;}
+  .field label{font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.06em; font-weight:600; display:block; margin-bottom:8px;}
+  .cat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+  .cat-item{
+    border:1px solid var(--line); border-radius:12px; padding:10px 4px;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    background:var(--paper-raise); cursor:pointer; font-size:10.5px; color:var(--ink-soft);
+  }
+  .cat-item .ci-icon{font-size:18px;}
+  .cat-item.active{border-color:var(--accent); background:var(--accent-soft); color:var(--ink);}
+  .cat-add-item{border-style:dashed;}
+
+  select, input[type="text"], input[type="datetime-local"], textarea{
+    width:100%; border:1px solid var(--line); border-radius:10px;
+    background:var(--paper-raise); color:var(--ink); font-family:'Inter',sans-serif;
+    font-size:13.5px; padding:10px 12px; outline:none;
+  }
+  select:focus, input:focus, textarea:focus{border-color:var(--accent);}
+  textarea{resize:vertical; min-height:56px;}
+
+  .switch-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .switch-row .sw-label{font-size:13px; font-weight:500;}
+  .switch-row .sw-desc{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+  .switch{
+    width:44px; height:26px; border-radius:99px; background:var(--line);
+    position:relative; cursor:pointer; transition:background .15s ease; flex:0 0 auto;
+  }
+  .switch.on{background:var(--accent);}
+  .switch .knob{
+    width:20px;height:20px;border-radius:50%; background:#fff;
+    position:absolute; top:3px; left:3px; transition:left .15s ease;
+    box-shadow:0 1px 3px rgba(0,0,0,0.3);
+  }
+  .switch.on .knob{left:21px;}
+
+  .save-btn{
+    width:100%; padding:14px 0; border:none; border-radius:12px;
+    background:var(--ink); color:var(--paper); font-size:14.5px; font-weight:600;
+    cursor:pointer; margin-top:6px; font-family:'Space Grotesk',sans-serif;
+  }
+  .save-btn:active{opacity:.85;}
+  .cancel-link{
+    display:block; text-align:center; margin-top:12px; font-size:12.5px;
+    color:var(--ink-soft); cursor:pointer;
+  }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:var(--paper); padding:11px 18px; border-radius:99px;
+    font-size:12.5px; z-index:60; box-shadow:var(--shadow); opacity:0; transition:opacity .2s ease;
+    max-width:85%; text-align:center;
+  }
+  .toast.show{opacity:1;}
+
+  .detail-actions{display:flex; gap:10px; margin-top:6px;}
+  .detail-actions button{
+    flex:1; padding:11px 0; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .btn-delete{background:var(--expense-soft); color:var(--expense); border:1px solid var(--expense);}
+  .btn-close{background:var(--paper-alt); color:var(--ink); border:1px solid var(--line);}
+
+  .new-wallet-form input{margin-bottom:12px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="header-row">
+      <div class="brand">
+        <div class="mark">Rp</div>
+        <h1>Catatan Uang</h1>
+      </div>
+      <button id="themeToggle" title="Ganti mode">🌙</button>
+    </div>
+    <div class="total-block">
+      <div class="total-label">Total saldo</div>
+      <div class="total-amount mono" id="totalBalance">Rp0</div>
+      <div class="month-stats">
+        <div class="stat-pill"><span class="stat-dot" style="background:var(--income)"></span><span id="monthIncome">Rp0 masuk</span></div>
+        <div class="stat-pill"><span class="stat-dot" style="background:var(--expense)"></span><span id="monthExpense">Rp0 keluar</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div id="reminderBanner"></div>
+
+  <div class="section">
+    <div class="section-title">Dompet</div>
+    <div class="wallet-scroll" id="walletScroll"></div>
+  </div>
+
+  <div class="filter-row" id="filterRow">
+    <div class="filter-chip active" data-filter="all">Semua</div>
+    <div class="filter-chip" data-filter="income">Pemasukan</div>
+    <div class="filter-chip" data-filter="expense">Pengeluaran</div>
+  </div>
+
+  <div class="receipt-wrap">
+    <div class="receipt">
+      <div class="receipt-tear"></div>
+      <div id="txList"></div>
+      <div class="receipt-tear" style="transform:rotate(180deg)"></div>
+    </div>
+  </div>
+
+  <button class="fab" id="fabAdd">+</button>
+</div>
+
+<!-- ADD TRANSACTION SHEET -->
+<div class="overlay" id="overlayAdd">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Catatan baru</div>
+
+    <div class="type-toggle" id="typeToggle">
+      <button data-type="expense" class="active expense-active">Pengeluaran</button>
+      <button data-type="income">Pemasukan</button>
+    </div>
+
+    <div class="amount-input-wrap">
+      <label>Jumlah</label>
+      <input class="amount-input" id="amountInput" type="text" inputmode="numeric" placeholder="Rp0">
+    </div>
+
+    <div class="field">
+      <label>Kategori</label>
+      <div class="cat-grid" id="catGrid"></div>
+    </div>
+
+    <div class="field">
+      <label>Dompet</label>
+      <select id="walletSelect"></select>
+    </div>
+
+    <div class="field">
+      <label>Catatan</label>
+      <textarea id="noteInput" placeholder="Contoh: makan siang di warung..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>Tanggal</label>
+      <input type="datetime-local" id="dateInput">
+    </div>
+
+    <div class="switch-row">
+      <div>
+        <div class="sw-label">Ingatkan saya</div>
+        <div class="sw-desc">Kirim notifikasi pada waktu tertentu</div>
+      </div>
+      <div class="switch" id="reminderSwitch"><div class="knob"></div></div>
+    </div>
+
+    <div class="field" id="reminderTimeField" style="display:none;">
+      <label>Waktu pengingat</label>
+      <input type="datetime-local" id="reminderInput">
+    </div>
+
+    <button class="save-btn" id="saveTxBtn">Simpan catatan</button>
+    <div class="cancel-link" id="cancelAdd">Batal</div>
+  </div>
+</div>
+
+<!-- ADD WALLET SHEET -->
+<div class="overlay" id="overlayWallet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Dompet baru</div>
+    <div class="new-wallet-form">
+      <label style="font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Nama dompet</label>
+      <input type="text" id="walletNameInput" placeholder="Contoh: Dompet Utama" style="margin-top:8px;">
+      <label style="font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Ikon</label>
+      <div class="cat-grid" id="walletIconGrid" style="margin-top:8px;"></div>
+      <label style="font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Saldo awal</label>
+      <input type="text" id="walletBalanceInput" inputmode="numeric" placeholder="0" style="margin-top:8px;">
+    </div>
+    <button class="save-btn" id="saveWalletBtn">Simpan dompet</button>
+    <div class="cancel-link" id="cancelWallet">Batal</div>
+  </div>
+</div>
+
+<!-- TX DETAIL SHEET -->
+<div class="overlay" id="overlayDetail">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Detail catatan</div>
+    <div id="detailBody" style="font-size:13.5px; line-height:1.9;"></div>
+    <div class="detail-actions">
+      <button class="btn-delete" id="deleteTxBtn">Hapus</button>
+      <button class="btn-close" id="closeDetailBtn">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+
+  const DEFAULT_CATEGORIES = [
+    {id:'c_makan', name:'Makan', icon:'🍜', type:'expense'},
+    {id:'c_transport', name:'Transport', icon:'🚗', type:'expense'},
+    {id:'c_belanja', name:'Belanja', icon:'🛍️', type:'expense'},
+    {id:'c_tagihan', name:'Tagihan', icon:'🧾', type:'expense'},
+    {id:'c_hiburan', name:'Hiburan', icon:'🎬', type:'expense'},
+    {id:'c_kesehatan', name:'Kesehatan', icon:'💊', type:'expense'},
+    {id:'c_lain_exp', name:'Lainnya', icon:'📦', type:'expense'},
+    {id:'c_gaji', name:'Gaji', icon:'💼', type:'income'},
+    {id:'c_bonus', name:'Bonus', icon:'🎁', type:'income'},
+    {id:'c_hadiah', name:'Hadiah', icon:'🎉', type:'income'},
+    {id:'c_lain_inc', name:'Lainnya', icon:'📦', type:'income'},
+  ];
+  const WALLET_ICONS = ['👛','🏦','💳','🐷','💰','👜'];
+
+  let state = {
+    wallets: [{id:'w1', name:'Dompet Utama', icon:'👛', startBalance:0}],
+    categories: DEFAULT_CATEGORIES.slice(),
+    transactions: [],
+    settings: {darkMode:false}
+  };
+
+  let activeWalletId = 'all';
+  let activeFilter = 'all';
+  let formType = 'expense';
+  let formCategoryId = null;
+  let reminderOn = false;
+  let selectedWalletIcon = WALLET_ICONS[0];
+  let detailTxId = null;
+
+  const $ = (sel)=>document.querySelector(sel);
+  const fmt = (n)=> 'Rp' + Math.round(n).toLocaleString('id-ID');
+
+  function toast(msg){
+    const t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 2600);
+  }
+
+  async function loadState(){
+    try{
+      const res = await window.storage.get('finance-app-state', false);
+      if(res && res.value){
+        const parsed = JSON.parse(res.value);
+        state = Object.assign(state, parsed);
+      }
+    }catch(e){
+      // no saved state yet, use defaults
+    }
+    applyTheme();
+    renderAll();
+    scheduleReminderCheck();
+  }
+
+  async function saveState(){
+    try{
+      await window.storage.set('finance-app-state', JSON.stringify(state), false);
+    }catch(e){
+      toast('Gagal menyimpan data');
+    }
+  }
+
+  function applyTheme(){
+    document.documentElement.setAttribute('data-theme', state.settings.darkMode ? 'dark' : 'light');
+    $('#themeToggle').textContent = state.settings.darkMode ? '☀️' : '🌙';
+  }
+
+  $('#themeToggle').addEventListener('click', ()=>{
+    state.settings.darkMode = !state.settings.darkMode;
+    applyTheme();
+    saveState();
+  });
+
+  function walletBalance(walletId){
+    const w = state.wallets.find(x=>x.id===walletId);
+    if(!w) return 0;
+    let bal = w.startBalance || 0;
+    state.transactions.forEach(t=>{
+      if(t.walletId===walletId){
+        bal += t.type==='income' ? t.amount : -t.amount;
+      }
+    });
+    return bal;
+  }
+
+  function totalBalance(){
+    return state.wallets.reduce((sum,w)=>sum+walletBalance(w.id),0);
+  }
+
+  function renderWallets(){
+    const wrap = $('#walletScroll');
+    wrap.innerHTML = '';
+    const allCard = document.createElement('div');
+    allCard.className = 'wallet-card' + (activeWalletId==='all' ? ' active' : '');
+    allCard.innerHTML = `<div class="w-icon">🗂️</div><div class="w-name">Semua Dompet</div><div class="w-bal mono">${fmt(totalBalance())}</div>`;
+    allCard.onclick = ()=>{ activeWalletId='all'; renderAll(); };
+    wrap.appendChild(allCard);
+
+    state.wallets.forEach(w=>{
+      const el = document.createElement('div');
+      el.className = 'wallet-card' + (activeWalletId===w.id ? ' active' : '');
+      el.innerHTML = `<div class="w-icon">${w.icon}</div><div class="w-name">${w.name}</div><div class="w-bal mono">${fmt(walletBalance(w.id))}</div>`;
+      el.onclick = ()=>{ activeWalletId=w.id; renderAll(); };
+      wrap.appendChild(el);
+    });
+
+    const addCard = document.createElement('div');
+    addCard.className = 'wallet-add';
+    addCard.textContent = '+';
+    addCard.onclick = openWalletSheet;
+    wrap.appendChild(addCard);
+  }
+
+  function monthKey(d){ return d.getFullYear()+'-'+d.getMonth(); }
+
+  function renderTotals(){
+    $('#totalBalance').textContent = fmt(totalBalance());
+    const now = new Date();
+    const curKey = monthKey(now);
+    let inc=0, exp=0;
+    state.transactions.forEach(t=>{
+      const d = new Date(t.date);
+      if(monthKey(d)===curKey){
+        if(t.type==='income') inc+=t.amount; else exp+=t.amount;
+      }
+    });
+    $('#monthIncome').textContent = fmt(inc) + ' masuk';
+    $('#monthExpense').textContent = fmt(exp) + ' keluar';
+  }
+
+  function categoryById(id){ return state.categories.find(c=>c.id===id); }
+  function walletById(id){ return state.wallets.find(w=>w.id===id); }
+
+  function renderTxList(){
+    const listEl = $('#txList');
+    let txs = state.transactions.slice();
+    if(activeWalletId!=='all') txs = txs.filter(t=>t.walletId===activeWalletId);
+    if(activeFilter!=='all') txs = txs.filter(t=>t.type===activeFilter);
+    txs.sort((a,b)=> new Date(b.date) - new Date(a.date));
+
+    if(txs.length===0){
+      listEl.innerHTML = `<div class="empty-state"><div class="big">🧾</div>Belum ada catatan.<br>Ketuk tombol + untuk mulai mencatat.</div>`;
+      return;
+    }
+
+    const groups = {};
+    txs.forEach(t=>{
+      const d = new Date(t.date);
+      const key = d.toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
+      (groups[key] = groups[key]||[]).push(t);
+    });
+
+    let html = '';
+    Object.keys(groups).forEach(key=>{
+      html += `<div class="day-group"><div class="day-label">${key}</div>`;
+      groups[key].forEach(t=>{
+        const cat = categoryById(t.categoryId) || {name:'Lainnya', icon:'📦'};
+        const w = walletById(t.walletId);
+        html += `
+          <div class="tx-row" data-id="${t.id}">
+            <div class="tx-icon">${cat.icon}</div>
+            <div class="tx-mid">
+              <div class="tx-cat">${cat.name}</div>
+              ${t.note ? `<div class="tx-note">${escapeHtml(t.note)}</div>` : ''}
+            </div>
+            <div class="tx-right">
+              <div class="tx-amount ${t.type}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</div>
+              <div class="tx-wallet">${w? w.name : ''}</div>
+              ${t.remindAt ? `<div class="tx-reminder-badge">⏰ diatur</div>` : ''}
+            </div>
+          </div>`;
+      });
+      html += `</div>`;
+    });
+    listEl.innerHTML = html;
+
+    listEl.querySelectorAll('.tx-row').forEach(row=>{
+      row.addEventListener('click', ()=> openDetail(row.dataset.id));
+    });
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function renderReminderBanner(){
+    const upcoming = state.transactions
+      .filter(t=>t.remindAt && !t.notified && new Date(t.remindAt) > new Date())
+      .sort((a,b)=> new Date(a.remindAt)-new Date(b.remindAt))
+      .slice(0,3);
+    const el = $('#reminderBanner');
+    if(upcoming.length===0){ el.innerHTML=''; return; }
+    let html = `<div class="reminder-banner"><div class="rb-title">⏰ Pengingat mendatang</div>`;
+    upcoming.forEach(t=>{
+      const cat = categoryById(t.categoryId) || {name:'Catatan'};
+      const d = new Date(t.remindAt);
+      html += `<div class="reminder-item"><span>${cat.name}${t.note? ' · '+escapeHtml(t.note):''}</span><span class="mono">${d.toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span></div>`;
+    });
+    html += `</div>`;
+    el.innerHTML = html;
+  }
+
+  function renderAll(){
+    renderWallets();
+    renderTotals();
+    renderTxList();
+    renderReminderBanner();
+  }
+
+  // filter chips
+  document.querySelectorAll('.filter-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+      activeFilter = chip.dataset.filter;
+      renderTxList();
+    });
+  });
+
+  // ---------- ADD TRANSACTION SHEET ----------
+  function openAddSheet(){
+    formType = 'expense';
+    formCategoryId = null;
+    reminderOn = false;
+    $('#amountInput').value = '';
+    $('#noteInput').value = '';
+    $('#reminderTimeField').style.display = 'none';
+    $('#reminderSwitch').classList.remove('on');
+    setTypeUI();
+    renderCatGrid();
+    renderWalletSelect();
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    $('#dateInput').value = now.toISOString().slice(0,16);
+    $('#reminderInput').value = now.toISOString().slice(0,16);
+    $('#overlayAdd').classList.add('show');
+  }
+  $('#fabAdd').addEventListener('click', openAddSheet);
+  $('#cancelAdd').addEventListener('click', ()=> $('#overlayAdd').classList.remove('show'));
+  $('#overlayAdd').addEventListener('click', (e)=>{ if(e.target.id==='overlayAdd') $('#overlayAdd').classList.remove('show'); });
+
+  function setTypeUI(){
+    document.querySelectorAll('#typeToggle button').forEach(b=>{
+      b.classList.remove('active','income-active','expense-active');
+      if(b.dataset.type===formType){
+        b.classList.add('active', formType==='income'?'income-active':'expense-active');
+      }
+    });
+  }
+  document.querySelectorAll('#typeToggle button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      formType = b.dataset.type;
+      formCategoryId = null;
+      setTypeUI();
+      renderCatGrid();
+    });
+  });
+
+  function renderCatGrid(){
+    const grid = $('#catGrid');
+    grid.innerHTML = '';
+    state.categories.filter(c=>c.type===formType).forEach(c=>{
+      const el = document.createElement('div');
+      el.className = 'cat-item' + (formCategoryId===c.id ? ' active':'');
+      el.innerHTML = `<div class="ci-icon">${c.icon}</div><div>${c.name}</div>`;
+      el.onclick = ()=>{ formCategoryId=c.id; renderCatGrid(); };
+      grid.appendChild(el);
+    });
+    const addEl = document.createElement('div');
+    addEl.className = 'cat-item cat-add-item';
+    addEl.innerHTML = `<div class="ci-icon">➕</div><div>Baru</div>`;
+    addEl.onclick = addCustomCategory;
+    grid.appendChild(addEl);
+  }
+
+  function addCustomCategory(){
+    const name = prompt('Nama kategori baru:');
+    if(!name) return;
+    const icon = prompt('Emoji ikon (contoh: 🧩):', '🧩') || '🧩';
+    const id = 'c_' + Date.now();
+    state.categories.push({id, name, icon, type: formType});
+    formCategoryId = id;
+    renderCatGrid();
+    saveState();
+  }
+
+  function renderWalletSelect(){
+    const sel = $('#walletSelect');
+    sel.innerHTML = '';
+    state.wallets.forEach(w=>{
+      const opt = document.createElement('option');
+      opt.value = w.id; opt.textContent = w.name + ' · ' + w.icon;
+      sel.appendChild(opt);
+    });
+    if(activeWalletId!=='all') sel.value = activeWalletId;
+  }
+
+  $('#reminderSwitch').addEventListener('click', function(){
+    reminderOn = !reminderOn;
+    this.classList.toggle('on', reminderOn);
+    $('#reminderTimeField').style.display = reminderOn ? 'block' : 'none';
+    if(reminderOn) ensureNotificationPermission();
+  });
+
+  function parseAmount(str){
+    const n = parseInt(String(str).replace(/[^0-9]/g,''), 10);
+    return isNaN(n) ? 0 : n;
+  }
+  $('#amountInput').addEventListener('input', function(){
+    const digits = this.value.replace(/[^0-9]/g,'');
+    this.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+  });
+
+  $('#saveTxBtn').addEventListener('click', ()=>{
+    const amount = parseAmount($('#amountInput').value);
+    if(amount<=0){ toast('Isi jumlah terlebih dahulu'); return; }
+    if(!formCategoryId){ toast('Pilih kategori dulu'); return; }
+    const walletId = $('#walletSelect').value;
+    if(!walletId){ toast('Tambahkan dompet dulu'); return; }
+    const note = $('#noteInput').value.trim();
+    const date = $('#dateInput').value ? new Date($('#dateInput').value).toISOString() : new Date().toISOString();
+    let remindAt = null;
+    if(reminderOn && $('#reminderInput').value){
+      remindAt = new Date($('#reminderInput').value).toISOString();
+    }
+    const tx = {
+      id: 'tx_' + Date.now(),
+      type: formType,
+      amount, categoryId: formCategoryId, walletId, note, date,
+      remindAt, notified:false
+    };
+    state.transactions.push(tx);
+    saveState();
+    renderAll();
+    $('#overlayAdd').classList.remove('show');
+    toast(remindAt ? 'Catatan disimpan · pengingat diatur' : 'Catatan disimpan');
+    scheduleReminderCheck();
+  });
+
+  // ---------- WALLET SHEET ----------
+  function openWalletSheet(){
+    $('#walletNameInput').value='';
+    $('#walletBalanceInput').value='';
+    selectedWalletIcon = WALLET_ICONS[0];
+    const grid = $('#walletIconGrid');
+    grid.innerHTML='';
+    WALLET_ICONS.forEach(icon=>{
+      const el = document.createElement('div');
+      el.className = 'cat-item' + (icon===selectedWalletIcon ? ' active':'');
+      el.innerHTML = `<div class="ci-icon">${icon}</div>`;
+      el.onclick = ()=>{ selectedWalletIcon = icon;
+        grid.querySelectorAll('.cat-item').forEach(x=>x.classList.remove('active'));
+        el.classList.add('active');
+      };
+      grid.appendChild(el);
+    });
+    $('#overlayWallet').classList.add('show');
+  }
+  $('#cancelWallet').addEventListener('click', ()=> $('#overlayWallet').classList.remove('show'));
+  $('#overlayWallet').addEventListener('click', (e)=>{ if(e.target.id==='overlayWallet') $('#overlayWallet').classList.remove('show'); });
+
+  $('#saveWalletBtn').addEventListener('click', ()=>{
+    const name = $('#walletNameInput').value.trim();
+    if(!name){ toast('Isi nama dompet'); return; }
+    const startBalance = parseAmount($('#walletBalanceInput').value);
+    const id = 'w_' + Date.now();
+    state.wallets.push({id, name, icon:selectedWalletIcon, startBalance});
+    saveState();
+    renderAll();
+    $('#overlayWallet').classList.remove('show');
+    toast('Dompet ditambahkan');
+  });
+
+  // ---------- DETAIL SHEET ----------
+  function openDetail(id){
+    detailTxId = id;
+    const t = state.transactions.find(x=>x.id===id);
+    if(!t) return;
+    const cat = categoryById(t.categoryId) || {name:'Lainnya', icon:'📦'};
+    const w = walletById(t.walletId);
+    const d = new Date(t.date);
+    $('#detailBody').innerHTML = `
+      <div><strong>${cat.icon} ${cat.name}</strong></div>
+      <div>Jumlah: <span class="mono">${t.type==='income'?'+':'-'}${fmt(t.amount)}</span></div>
+      <div>Dompet: ${w? w.name : '-'}</div>
+      <div>Tanggal: ${d.toLocaleString('id-ID',{dateStyle:'long', timeStyle:'short'})}</div>
+      ${t.note ? `<div>Catatan: ${escapeHtml(t.note)}</div>` : ''}
+      ${t.remindAt ? `<div>Pengingat: ${new Date(t.remindAt).toLocaleString('id-ID',{dateStyle:'long', timeStyle:'short'})} ${t.notified? '(sudah dikirim)':''}</div>` : ''}
+    `;
+    $('#overlayDetail').classList.add('show');
+  }
+  $('#closeDetailBtn').addEventListener('click', ()=> $('#overlayDetail').classList.remove('show'));
+  $('#overlayDetail').addEventListener('click', (e)=>{ if(e.target.id==='overlayDetail') $('#overlayDetail').classList.remove('show'); });
+  $('#deleteTxBtn').addEventListener('click', ()=>{
+    state.transactions = state.transactions.filter(t=>t.id!==detailTxId);
+    saveState();
+    renderAll();
+    $('#overlayDetail').classList.remove('show');
+    toast('Catatan dihapus');
+  });
+
+  // ---------- NOTIFICATIONS ----------
+  function ensureNotificationPermission(){
+    if(!('Notification' in window)) return;
+    if(Notification.permission === 'default'){
+      Notification.requestPermission();
+    }
+  }
+
+  let reminderInterval = null;
+  function scheduleReminderCheck(){
+    if(reminderInterval) return;
+    reminderInterval = setInterval(checkDueReminders, 15000);
+    checkDueReminders();
+  }
+  function checkDueReminders(){
+    const now = new Date();
+    let changed = false;
+    state.transactions.forEach(t=>{
+      if(t.remindAt && !t.notified && new Date(t.remindAt) <= now){
+        fireReminder(t);
+        t.notified = true;
+        changed = true;
+      }
+    });
+    if(changed){ saveState(); renderReminderBanner(); renderTxList(); }
+  }
+  function fireReminder(t){
+    const cat = categoryById(t.categoryId) || {name:'Catatan', icon:'⏰'};
+    const body = (t.note ? t.note + ' — ' : '') + fmt(t.amount);
+    if('Notification' in window && Notification.permission === 'granted'){
+      try{
+        new Notification('⏰ Pengingat: ' + cat.name, {body});
+      }catch(e){
+        toast('⏰ Pengingat: ' + cat.name + ' — ' + body);
+      }
+    } else {
+      toast('⏰ Pengingat: ' + cat.name + ' — ' + body);
+    }
+  }
+
+  loadState();
+})();
+</script>
+</body>
+</html>
